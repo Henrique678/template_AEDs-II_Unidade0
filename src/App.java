@@ -1,4 +1,8 @@
+import java.io.File;
+import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
 public class App {
@@ -51,15 +55,62 @@ public class App {
      * @param nomeArquivoDados Nome do arquivo de dados a ser aberto.
      * @return Um vetor com os produtos carregados, ou vazio em caso de problemas de leitura.
      */
-    static Produto[] lerProdutos(String nomeArquivoDados) {
-		return null;
-    	
+	static Produto[] lerProdutos(String nomeArquivoDados) {
+        try {
+            File arquivo = new File(nomeArquivoDados);
+            Scanner leitor = new Scanner(arquivo, "UTF-8");
+
+            int quantidade = Integer.parseInt(leitor.nextLine().trim());
+            Produto[] produtos = new Produto[quantidade];
+
+            for (int i = 0; i < quantidade; i++) {
+                String linha = leitor.nextLine();
+                linha = linha.replace(",", ".");
+                produtos[i] = Produto.criarDoTexto(linha);
+            }
+
+            leitor.close();
+            quantosProdutos = quantidade;
+
+            Produto[] vetorExpandido = new Produto[quantidade + MAX_NOVOS_PRODUTOS];
+
+            for (int i = 0; i < quantidade; i++) {
+                vetorExpandido[i] = produtos[i];
+            }
+
+            return vetorExpandido;
+
+        } catch (Exception e) {
+            System.out.println("Erro ao ler o arquivo de produtos.");
+            quantosProdutos = 0;
+            return new Produto[MAX_NOVOS_PRODUTOS];
+        }
     }
     
     /** Localiza um produto no vetor de produtos cadastrados, a partir do nome de produto informado pelo usuário, e imprime seus dados. 
      *  A busca não é sensível ao caso. Em caso de não encontrar o produto, imprime uma mensagem padrão */
-    static void localizarProdutos() {
-             
+	static void localizarProdutos() {
+        System.out.print("Digite o nome do produto: ");
+        String nome = teclado.nextLine();
+
+        boolean encontrado = false;
+
+        for (int i = 0; i < quantosProdutos; i++) {
+            if (produtosCadastrados[i] != null) {
+                String[] dados = produtosCadastrados[i].gerarDadosTexto().split(";");
+                String descricao = dados[1];
+
+                if (descricao.equalsIgnoreCase(nome)) {
+                    System.out.println(produtosCadastrados[i]);
+                    encontrado = true;
+                    break;
+                }
+            }
+        }
+
+        if (!encontrado) {
+            System.out.println("Produto não encontrado.");
+        }
     }
     
     /**
@@ -67,12 +118,43 @@ public class App {
      * @param nomeArquivo Nome do arquivo a ser gravado.
      */
     public static void salvarProdutos(String nomeArquivo) {
-    
+        try {
+            PrintWriter escritor = new PrintWriter(nomeArquivo, "UTF-8");
+
+            escritor.println(quantosProdutos);
+
+            for (int i = 0; i < quantosProdutos; i++) {
+                if (produtosCadastrados[i] != null) {
+                    String linha = produtosCadastrados[i].gerarDadosTexto();
+
+                    linha = linha.replace(",", ".");
+
+                    escritor.println(linha);
+                }
+            }
+
+            escritor.close();
+
+            System.out.println("Produtos salvos com sucesso.");
+
+        } catch (Exception e) {
+            System.out.println("Erro ao salvar os produtos.");
+        }
     }
     
     /** Lista todos os produtos cadastrados, numerados, um por linha */
     static void listarTodosOsProdutos() {
-    	
+        if (quantosProdutos == 0) {
+            System.out.println("Nenhum produto cadastrado.");
+            return;
+        }
+
+        for (int i = 0; i < quantosProdutos; i++) {
+            if (produtosCadastrados[i] != null) {
+                System.out.println((i + 1) + " - " + produtosCadastrados[i]
+                );
+            }
+        }
     }
     
     /**
@@ -80,8 +162,69 @@ public class App {
      * cria o objeto adequado de acordo com o tipo, inclui o produto no vetor.
      */
     static void cadastrarProduto() {
-    	
-    }  
+        if (quantosProdutos >= produtosCadastrados.length) {
+            System.out.println("Não há espaço para cadastrar novos produtos.");
+            return;
+        }
+
+        System.out.println("1 - Produto não perecível");
+        System.out.println("2 - Produto perecível");
+        System.out.print("Digite o tipo do produto: ");
+
+        int tipo;
+
+        try {
+            tipo = Integer.parseInt(teclado.nextLine());
+        } catch (Exception e) {
+            System.out.println("Tipo inválido.");
+            return;
+        }
+
+        if (tipo != 1 && tipo != 2) {
+            System.out.println("Tipo de produto inválido.");
+            return;
+        }
+
+        System.out.print("Digite a descrição: ");
+        String descricao = teclado.nextLine();
+
+        double precoCusto;
+        double margemLucro;
+
+        try {
+            System.out.print("Digite o preço de custo: ");
+            precoCusto = Double.parseDouble(teclado.nextLine().replace(",", "."));
+
+            System.out.print("Digite a margem de lucro: ");
+            margemLucro = Double.parseDouble(teclado.nextLine().replace(",", "."));
+
+        } catch (Exception e) {
+            System.out.println("Preço ou margem de lucro inválidos.");
+            return;
+        }
+
+        try {
+            if (tipo == 1) {
+                produtosCadastrados[quantosProdutos] =
+                        new ProdutoNaoPerecivel(descricao, precoCusto, margemLucro);
+            } else {
+                System.out.print("Digite a data de validade (dd/MM/yyyy): ");
+
+                String textoData = teclado.nextLine();
+                DateTimeFormatter formato =DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+                LocalDate data =LocalDate.parse(textoData, formato);
+
+                produtosCadastrados[quantosProdutos] = new ProdutoPerecivel(descricao, precoCusto, margemLucro, data);
+            }
+            quantosProdutos++;
+
+            System.out.println("Produto cadastrado com sucesso!");
+
+        } catch (Exception e) {
+			System.out.println("Não foi possível cadastrar o produto: " + e.getMessage());
+        }
+    } 
     
 	public static void main(String[] args) {
 		teclado = new Scanner(System.in, Charset.forName("UTF-8"));

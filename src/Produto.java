@@ -1,5 +1,5 @@
 import java.text.NumberFormat;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 
 public abstract class Produto {
 	
@@ -89,19 +89,24 @@ public abstract class Produto {
      * @param linha Linha com os dados do produto a ser criado.
      * @return Um produto com os dados recebidos
      */
-    static Produto criarDoTexto(String linha) {
-		DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/mm/yyyy");
-		String[] novoTexto = linha.split(";");
-		for (int i = 0; i < novoTexto.length; i++) {
-			if(Integer.parseInt(novoTexto[0]) == 1){
-			
-				
-			}else if(Integer.parseInt(novoTexto[0]) == 2){
-				
-			}
-		}
-    	return null;
-    }
+     static Produto criarDoTexto(String linha) {
+         String[] dados = linha.split(";");
+
+         int tipo = Integer.parseInt(dados[0]);
+         String descricao = dados[1];
+         double precoDeCusto = Double.parseDouble(dados[2]);
+         double margemDeLucro = Double.parseDouble(dados[3]);
+
+         switch (tipo) {
+             case 1:
+                 return new ProdutoNaoPerecivel(descricao, precoDeCusto, margemDeLucro);
+             case 2:
+                 LocalDate data = LocalDate.parse(dados[4]);
+                 return new ProdutoPerecivel(descricao, precoDeCusto, margemDeLucro, data);
+             default:
+                 throw new IllegalArgumentException("Tipo inválido");
+         }
+     }
     	
     /**
      * Gera uma linha de texto a partir dos dados do produto.
